@@ -1,0 +1,210 @@
+"===============================================================================
+" vimrc file for quality of life vim settings, including custom color scheme. 
+"
+" Copy it to your home directory to begin using it:
+" $ cp ~liasi/share/compchem/config_files/vimrc ~/.vimrc
+"
+" Author   Zacharias Liasi (liasi)
+" GitHub   https://github.com/zliasi
+" Version  0.1.0 
+"===============================================================================
+
+
+"=============================================================================== 
+" HELPFUL REMINDERS                                                            
+"===============================================================================
+
+" Quick vim commands to remember:
+" :w        - Save file
+" :q        - Quit
+" :wq       - Save and quit
+" :q!       - Quit without saving
+" /text     - Search for 'text'
+" n         - Go to next search result
+" N         - Go to previous search result
+" gg        - Go to beginning of file
+" G         - Go to end of file
+" dd        - Delete current line
+" u         - Undo
+" Ctrl+r    - Redo
+
+"=============================================================================== 
+" Essential settings                                                          
+"===============================================================================
+
+" Enable syntax highlighting (colors for different parts of code)
+syntax on
+
+" Show line numbers on the left side
+set number
+
+" Show matching brackets when cursor is over them
+set showmatch
+
+"=============================================================================== 
+" Indentations and tabs                                                        
+"===============================================================================
+
+" Set tab width to 4 spaces (good for Python, which many students will use)
+set tabstop=4
+
+" When using >> or << to indent, use 4 spaces
+set shiftwidth=4
+
+" Convert tabs to spaces (prevents formatting issues)
+set expandtab
+
+" Make backspace work more intuitively
+set backspace=indent,eol,start
+
+" Auto-indent new lines based on the previous line
+set autoindent
+
+"=============================================================================== 
+" Search settings                                                       
+"===============================================================================
+
+" Highlight search results as you type
+set incsearch
+
+" Highlight all search matches
+set hlsearch
+
+" Make searches case-insensitive unless you use uppercase letters
+set ignorecase
+set smartcase
+
+"============================================================================== 
+" Editor behavior                                                             
+"===============================================================================
+
+" Don't create backup files (prevents clutter)
+set nobackup
+set noswapfile
+
+" Enable mouse support (useful for beginners)
+set mouse=a
+
+" Always show the status line
+set laststatus=2
+
+" Don't ring the bell on errors
+set noerrorbells
+set novisualbell
+
+"=============================================================================== 
+" Color scheme                                                             
+"===============================================================================
+
+" Use dark background
+set background=dark
+
+" Clear any existing colors and start fresh
+if exists("syntax_on")
+    syntax reset
+endif
+
+" Enable 256 colors if terminal supports it
+if &t_Co >= 256
+    set t_Co=256
+endif
+
+" Custom modifications to the default vim color scheme, making it a bit easier
+" on the eye. Inspired by the colors used on GitHub
+
+" Core interface colors
+highlight Normal ctermfg=249 ctermbg=16
+highlight Cursor ctermbg=237 ctermfg=237
+
+" Line numbers and interface elements
+highlight LineNr ctermfg=245 ctermbg=16
+highlight StatusLine ctermbg=237 ctermfg=245
+highlight StatusLineNC ctermbg=245 ctermfg=237
+highlight VertSplit ctermbg=237 ctermfg=237
+highlight SignColumn ctermbg=235
+
+" Visual selection and search
+highlight Visual ctermbg=237 ctermfg=245
+highlight Search ctermbg=238 ctermfg=252
+highlight IncSearch ctermbg=238 ctermfg=252
+highlight MatchParen ctermbg=245 cterm=bold
+
+" Errors and warnings
+highlight Error ctermbg=203 ctermfg=255 cterm=bold
+highlight ErrorMsg ctermbg=235 ctermfg=203
+highlight WarningMsg ctermbg=235 ctermfg=178
+
+" Syntax highlighting
+highlight Comment ctermfg=245
+highlight NonText ctermfg=245
+
+" Constants and literals
+highlight Constant ctermfg=117
+highlight Character ctermfg=117
+highlight String ctermfg=117
+highlight Number ctermfg=117
+highlight Boolean ctermfg=117
+highlight Float ctermfg=117
+
+" Identifiers and functions
+highlight Identifier ctermfg=75
+highlight Function ctermfg=183
+
+" Keywords and statements
+highlight Keyword ctermfg=203 cterm=bold
+highlight Statement ctermfg=203 cterm=bold
+highlight Conditional ctermfg=203 cterm=bold
+highlight Repeat ctermfg=203 cterm=bold
+highlight Label ctermfg=75
+highlight Operator ctermfg=75
+
+" Types and preprocessor
+highlight Type ctermfg=249
+highlight PreProc ctermfg=203
+
+" Special characters and keys
+highlight Special ctermfg=75
+highlight SpecialKey ctermfg=245
+
+" Directory listings
+highlight Directory ctermfg=75 cterm=bold
+
+" Titles and questions
+highlight Title ctermfg=249 cterm=bold
+highlight Question ctermfg=249
+highlight MoreMsg ctermfg=249
+highlight ModeMsg ctermfg=249
+
+" Todo highlighting
+highlight Todo ctermbg=235 ctermfg=249 cterm=bold
+
+" Popup menus
+highlight Pmenu ctermbg=237 ctermfg=249
+highlight PmenuSel ctermbg=238 ctermfg=249
+
+" Diff highlighting
+highlight DiffAdd ctermbg=235 ctermfg=114
+highlight DiffDelete ctermbg=235 ctermfg=203
+highlight DiffChange ctermbg=235 ctermfg=178
+highlight DiffText ctermbg=178 ctermfg=16 cterm=bold
+
+" Folding
+highlight Folded ctermfg=245 ctermbg=237
+
+" Tab line
+highlight TabLine ctermfg=245 ctermbg=235 cterm=none
+highlight TabLineFill ctermfg=245 ctermbg=235 cterm=none
+highlight TabLineSel ctermfg=249 ctermbg=237 cterm=bold
+
+" Additional syntax elements for better code highlighting
+highlight StorageClass ctermfg=203 cterm=bold
+highlight Structure ctermfg=203 cterm=bold
+highlight Typedef ctermfg=203 cterm=bold
+highlight Exception ctermfg=215
+
+" Python-specific highlighting improvements
+highlight pythonBuiltin ctermfg=75
+highlight pythonFunction ctermfg=183
+highlight pythonConditional ctermfg=203 cterm=bold
+highlight pythonRepeat ctermfg=203 cterm=bold
+highlight pythonOperator ctermfg=75

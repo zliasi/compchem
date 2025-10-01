@@ -1,0 +1,71 @@
+#===============================================================================
+# bashrc file with useful base settings
+#
+# Copy it to your home directory to begin using it:
+# $ cp ~liasi/share/compchem/config_files/bashrc ~/.bashrc
+# Then either log out and in again or source the file:
+# $ source ~/.bashrc
+#
+# Author   Zacharias Liasi (liasi)
+# GitHub   https://github.com/zliasi
+# Version  0.1.0 
+#===============================================================================
+
+
+#===============================================================================
+# Source system bashrc                                                         
+#===============================================================================
+
+# Load system-wide settings first
+if [ -f /etc/bashrc ]; then
+    . /etc/bashrc
+fi
+
+#===============================================================================
+# Aliases - shortcuts for commands                                             
+#===============================================================================
+
+# Do not remove this alias
+alias sudo="echo 'Do not use sudo!'"
+
+# Make commands safer by asking for confirmation.
+# File removal is permanent. The alias below adds a confirmation check to the rm
+# command. Remove the '#' to activate the confirmation check.
+#alias rm="rm -i"            # Confirm before deleting files
+#alias cp="cp -i"            # Confirm before overwriting files
+#alias mv="mv -i"            # Confirm before overwriting files
+
+# Show personal queue in a more readable format                               
+alias sq="echo; squeue -u $USER -o '%8i %15P %16R %4C %10m %7T %12M %j'; echo"
+
+# Watch personal queue in a more readable format
+alias wsq="watch squeue -u $USER -o \'%8i %15P %16R %4C %10m %7T %12M %j\'"
+
+# Display useful information partition information
+# Add more partitions using the syntax: partitions=("chem" "other_partition" "third_partition")
+partitions=("chem") 
+alias pinfo="echo; sinfo -p ${partitions} -o '%15P %9T %13l %13e %15C %14F'; echo"
+
+# Open Babel (software for parsing and converting files)
+alias obabel="/software/kemi/openbabel/build/bin/obabel"
+
+# GaussView (software for 3D visiualization of molecules -- X server needed for GUI)
+alias gaussview="/software/kemi/gv6/gaussview"
+
+# MOLDEN (software for 3D visiualization of molecules -- X server needed for GUI)
+alias molden="/groups/kemi/liasi/software/molden-6.9/bin/molden -l -S -m"
+
+#===============================================================================
+# Useful functions                                                             
+#===============================================================================
+
+# Show [personal] partition queue in a more readable format
+function sqp() {
+  [[ -n $1 ]] && echo && squeue -p "$1" -o '%8i %9u %16R %4C %10m %7T %12M %j' && echo || echo "Error: No partition given; needs one argument; e.g., sqp chem"
+}
+
+# Watch [personal] partition queue in a more readable format
+function wsqp() {
+  [[ -n $1 ]] && watch squeue -u $USER -p "$1" -o \'%%8i %9u %16R %4C %10m %7T %12M %j\' || echo "Error: No partition given; needs one argument; e.g., wsqp chem"
+}
+

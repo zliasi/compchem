@@ -1,0 +1,554 @@
+#!/bin/bash
+#===============================================================================
+# SLURM submission script for Dalton
+# Author: Zacharias Liasi (liasi)
+# Github: https://github.com/zliasi
+# Version: 0.1.0
+#
+# Usage:
+#   dalton_submit input.dal geom.mol [pot.pot] [restart.tar.gz] ... [options]
+#   dalton_submit input.dal geom1.mol geom2.mol ... [options]
+#   dalton_submit -M FILE [options]
+#
+# Options:
+#   -c, --cpus INT                 CPU cores per task (default: $default_number_of_cpus)
+#   -m, --memory INT               Total memory in GB per node (default: $default_memory_gb)
+#   -p, --partition NAME           Partition (default: $default_partition)
+#   -t, --time D-HH:MM:SS          Time limit (optional)
+#   -o, --output DIR               Output directory (default: $default_output_directory)
+#   -M, --manifest FILE            Manifest file (submits a job array using the input files listed in FILE)
+#   -T, --throttle INT             Max concurrent array subjobs (default: $default_throttle)
+#   -N, --nodes INT                Number of nodes (default: $default_nodes)
+#   -n, --ntasks INT               Number of tasks (default: $default_ntasks)
+#   -j, --job, --job-name NAME     Custom job name
+#   -y, --nice INT                 Set SLURM nice factor (optional)
+#   -L, --loprop                   Request LoProp files (-get "AOONEINT AOPROPER")
+#   -h, --help                     Show this help
+#
+#===============================================================================
+
+#===============================================================================
+# Configuration
+#===============================================================================
+
+default_partition=chem
+default_number_of_cpus=1
+default_memory_gb=2
+default_ntasks=1
+default_nodes=1
+default_throttle=10
+default_output_directory="output"
+sbatch_output_file_extension=".log"
+use_backup_dir=true
+max_backups=5
+backup_dir_name="backup"
+
+
+scratch_base="/scratch"
+compiler_bin="/groups/kemi/liasi/local/openmpi/latest/bin"
+compiler_lib="/groups/kemi/liasi/local/openmpi/latest/lib"
+dalton_exec_32i="/groups/kemi/liasi/local/dalton/2025.0-dev-lp64-ompi/dalton"
+dalton_exec_64i="/groups/kemi/liasi/local/dalton/2025.0-dev-ilp64-ompi/dalton"
+exclude_nodes="node[461-468],node[471-482],node[484-485]"
+
+#===============================================================================
+# Main part of the submission script
+#===============================================================================
+
+print_usage() {
+  cat <<'USAGE'
+ Usage:
+   dalton_submit input.dal geom.mol [pot.pot] [restart.tar.gz] ... [options]
+   dalton_submit input.dal geom1.mol geom2.mol ... [options]
+   dalton_submit -M FILE [options]
+
+ Options:
+   -c, --cpus INT                 CPU cores per task (default: $default_number_of_cpus)
+   -m, --memory INT               Total memory in GB per node (default: $default_memory_gb)
+   -p, --partition NAME           Partition (default: $default_partition)
+   -t, --time D-HH:MM:SS          Time limit (optional)
+   -o, --output DIR               Output directory (default: $default_output_directory)
+   -M, --manifest FILE            Manifest file (submits a job array using the input files listed in FILE)
+   -T, --throttle INT             Max concurrent array subjobs (default: $default_throttle)
+   -N, --nodes INT                Number of nodes (default: $default_nodes)
+   -n, --ntasks INT               Number of tasks (default: $default_ntasks)
+   -j, --job, --job-name NAME     Custom job name
+   -y, --nice INT                 Set SLURM nice factor (optional)
+   -L, --loprop                   Request LoProp files (-get "AOONEINT AOPROPER")
+   -h, --help                     Show this help
+
+Examples:
+  dalton_submit exc_b3lyp.dal augccpvdz_h2o.mol -c 1 -m 4 -p chem
+  dalton_submit opt_camb3lyp.dal ccpvdz_h2o.mol ccpvdz_ethanol.mol
+  dalton_submit -M manifest.txt --partition kemi6 -T 5
+USAGE
+}
+
+throw_argument_error() {
+  printf "\nError: %s\n" "$1" >&2
+  printf "Use: dalton_submit -h for help.\n\n" >&2
+  exit 1
+}
+
+validate_file() {
+  [[ -f "$1" ]] || throw_argument_error "File not found: $1"
+}
+
+validate_positive_integer() {
+  [[ "$1" =~ ^[1-9][0-9]*$ ]] || throw_argument_error "Invalid value for $2: must be a positive integer"
+}
+
+validate_time_format() {
+  [[ -z "$1" || "$1" =~ ^([0-9]+-)?([0-1]?[0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]$ ]] \
+    || throw_argument_error "Invalid time format: $1 (use D-HH:MM:SS or HH:MM:SS)"
+}
+
+to_abspath() {
+  local f="$1"
+  if command -v realpath >/dev/null 2>&1; then realpath "$f"
+  elif command -v readlink >/dev/null 2>&1; then readlink -f "$f"
+  else [[ "$f" = /* ]] && printf "%s\n" "$f" || printf "%s/%s\n" "$PWD" "$f"
+  fi
+}
+
+backup_existing_files() {
+  local target_path="$1"
+  [[ -z "$target_path" || ! -f "$target_path" ]] && return 0
+
+  local dir_path base_name backup_dir backup_base
+  dir_path=$(dirname -- "$target_path")
+  base_name=$(basename -- "$target_path")
+
+  if [[ "$use_backup_dir" == true ]]; then
+    backup_dir="${dir_path}/${backup_dir_name}"
+    [[ ! -d "$backup_dir" ]] && mkdir -p "$backup_dir"
+    backup_base="${backup_dir}/${base_name}"
+  else
+    backup_base="${dir_path}/${base_name}"
+  fi
+
+  local width=${#max_backups}
+  local from to i
+
+  exec 9> "${backup_base}.lock"
+  if ! flock -w 5 9; then
+    printf "Warning: could not acquire lock for backup of %s\n" "$target_path"
+    return 0
+  fi
+
+  printf -v to "%0${width}d" "$max_backups"
+  [[ -e "${backup_base}.${to}" ]] && rm -f -- "${backup_base}.${to}"
+
+  for ((i=max_backups-1; i>=0; i--)); do
+    printf -v from "%0${width}d" "$i"
+    printf -v to   "%0${width}d" "$((i+1))"
+    if [[ -e "${backup_base}.${from}" ]]; then
+      mv -f -- "${backup_base}.${from}" "${backup_base}.${to}"
+    fi
+  done
+
+  printf -v to "%0${width}d" 0
+  mv -f -- "$target_path" "${backup_base}.${to}"
+
+  flock -u 9
+  rm -f "${backup_base}.lock"
+}
+
+initialize_directory() {
+  if [[ ! -d "$output_directory" ]]; then
+    mkdir -p "$output_directory"
+    printf "Created output directory: %s\n" "$output_directory"
+  else
+    printf "Using output directory: %s\n" "$output_directory"
+  fi
+}
+
+parse_arguments() {
+  local args=("$@")
+  positional_arguments=()
+  user_time_limit=""
+  custom_job_name=""
+  nice_factor=""
+  loprop=false
+
+  partition="$default_partition"
+  number_of_cpus="$default_number_of_cpus"
+  total_memory_gb="$default_memory_gb"
+  output_directory="$default_output_directory"
+  ntasks="$default_ntasks"
+  nodes="$default_nodes"
+  throttle="$default_throttle"
+  manifest_in=""
+
+  local i=0
+  while [[ $i -lt ${#args[@]} ]]; do
+    case "${args[i]}" in
+      -o|--output)     output_directory="${args[i+1]}"; ((i++));;
+      -c|--cpus)       number_of_cpus="${args[i+1]}"; ((i++));;
+      -m|--memory)     total_memory_gb="${args[i+1]}"; ((i++));;
+      -p|--partition)  partition="${args[i+1]}"; ((i++));;
+      -t|--time)       user_time_limit="${args[i+1]}"; ((i++));;
+      -M|--manifest)   manifest_in="${args[i+1]}"; ((i++));;
+      -T|--throttle)   throttle="${args[i+1]}"; ((i++));;
+      -N|--nodes)      nodes="${args[i+1]}"; ((i++));;
+      -n|--ntasks)     ntasks="${args[i+1]}"; ((i++));;
+      -j|--job|--job-name) custom_job_name="${args[i+1]}"; ((i++));;
+      -y|--nice)       nice_factor="${args[i+1]}"; ((i++));;
+      -L|--loprop)     loprop=true;;
+      -h|--help)       print_usage;;
+      -*)              throw_argument_error "Unknown option: ${args[i]}";;
+      *)               positional_arguments+=("${args[i]}");;
+    esac
+    ((i++))
+  done
+
+  validate_positive_integer "$number_of_cpus" "CPU cores"
+  validate_positive_integer "$total_memory_gb" "memory"
+  validate_positive_integer "$ntasks" "ntasks"
+  validate_positive_integer "$nodes" "nodes"
+  validate_positive_integer "$throttle" "throttle"
+  [[ -n "$nice_factor" ]] && validate_positive_integer "$nice_factor" "nice factor"
+  validate_time_format "$user_time_limit"
+  [[ -n "$output_directory" && "${output_directory: -1}" != "/" ]] && output_directory="${output_directory}/"
+}
+
+jobs=()
+
+append_job() {
+  local dal="$1" mol="$2" pot="$3" rst="$4"
+  jobs+=("$dal"$'\t'"$mol"$'\t'"$pot"$'\t'"$rst")
+}
+
+retroactively_apply_pot_since_segment() {
+  local pot="$1" start_idx="$2"
+  local idx line dal mol curpot rst
+  for ((idx=start_idx; idx<${#jobs[@]}; idx++)); do
+    IFS=$'\t' read -r dal mol curpot rst <<< "${jobs[idx]}"
+    if [[ -z "$curpot" ]]; then
+      jobs[idx]="$dal"$'\t'"$mol"$'\t'"$pot"$'\t'"$rst"
+    fi
+  done
+}
+
+build_jobs_from_tokens() {
+  local -a tokens=("$@")
+  local current_dal=""
+  local sticky_pot=""
+  local seg_start=0
+  local next_restart=""
+  local pending_global_restart=""
+  local pending_pot_before_dal=""
+
+  local tok
+  for tok in "${tokens[@]}"; do
+    case "$tok" in
+      *.dal)
+        validate_file "$tok"
+        current_dal="$(to_abspath "$tok")"
+        sticky_pot=""
+        [[ -n "$pending_pot_before_dal" ]] && sticky_pot="$(to_abspath "$pending_pot_before_dal")" && pending_pot_before_dal=""
+        next_restart=""
+        seg_start=${#jobs[@]}
+        ;;
+      *.pot)
+        validate_file "$tok"
+        if [[ -z "$current_dal" ]]; then
+          pending_pot_before_dal="$tok"
+        else
+          sticky_pot="$(to_abspath "$tok")"
+          retroactively_apply_pot_since_segment "$sticky_pot" "$seg_start"
+        fi
+        ;;
+      *.tar.gz)
+        validate_file "$tok"
+        if [[ -n "$current_dal" ]]; then
+          next_restart="$(to_abspath "$tok")"
+        else
+          pending_global_restart="$(to_abspath "$tok")"
+        fi
+        ;;
+      *.mol)
+        validate_file "$tok"
+        [[ -n "$current_dal" ]] || throw_argument_error ".mol without a preceding .dal: $tok"
+        local dal_abs="$current_dal"
+        local mol_abs
+        mol_abs="$(to_abspath "$tok")"
+
+        local rst_use=""
+        if [[ -n "$next_restart" ]]; then
+          rst_use="$next_restart"; next_restart=""
+        elif [[ -n "$pending_global_restart" ]]; then
+          rst_use="$pending_global_restart"; pending_global_restart=""
+        fi
+
+        append_job "$dal_abs" "$mol_abs" "$sticky_pot" "$rst_use"
+        ;;
+      *)
+        throw_argument_error "Unsupported file type (expect .dal/.mol/.pot/.tar.gz): $tok"
+        ;;
+    esac
+  done
+}
+
+read_manifest_tokens() {
+  local file="$1"
+  validate_file "$file"
+  local line
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    line="${line%$'\r'}"
+    [[ "$line" =~ ^[[:space:]]*$ ]] && continue
+    [[ "$line" =~ ^[[:space:]]*# ]] && continue
+
+    read -r -a fields <<< "$line"
+    if (( ${#fields[@]} >= 2 )); then
+      local dal="${fields[0]}" mol="${fields[1]}" pot="" rst=""
+      [[ -n "${fields[2]:-}" ]] && pot="${fields[2]}"
+      [[ -n "${fields[3]:-}" ]] && rst="${fields[3]}"
+
+      [[ "$dal" == *.dal && -f "$dal" ]] || throw_argument_error "Invalid DAL in manifest: $dal"
+      [[ "$mol" == *.mol && -f "$mol" ]] || throw_argument_error "Invalid MOL in manifest: $mol"
+      [[ -n "$pot" ]] && { [[ "$pot" == *.pot && -f "$pot" ]] || throw_argument_error "Invalid POT in manifest: $pot"; }
+      [[ -n "$rst" ]] && { [[ "$rst" == *.tar.gz && -f "$rst" ]] || throw_argument_error "Invalid RESTART in manifest: $rst"; }
+
+      append_job "$(to_abspath "$dal")" "$(to_abspath "$mol")" "$( [[ -n "$pot" ]] && to_abspath "$pot" )" "$( [[ -n "$rst" ]] && to_abspath "$rst" )"
+    else
+      manifest_tokens+=("$line")
+    fi
+  done < "$file"
+
+  if (( ${#manifest_tokens[@]} > 0 )); then
+    build_jobs_from_tokens "${manifest_tokens[@]}"
+  fi
+}
+
+create_exec_manifest() {
+  local _job_name="$1"
+  local manifest_path="${_job_name}_manifest"
+  : > "$manifest_path"
+  local j
+  for j in "${jobs[@]}"; do
+    printf "%s\n" "$j" >> "$manifest_path"
+  done
+  echo "$manifest_path"
+}
+
+generate_sbatch_script() {
+  local job_name="$1"
+  local exec_manifest="$2"
+
+  local time_line="" time_display="default (partition)"
+  if [[ -n "$user_time_limit" ]]; then
+    time_line="#SBATCH --time=$user_time_limit"
+    time_display="$user_time_limit"
+  fi
+
+  local nice_line=""
+  [[ -n "$nice_factor" ]] && nice_line="#SBATCH --nice=$nice_factor"
+
+  local exclude_line=""
+  [[ -n "$exclude_nodes" ]] && exclude_line="#SBATCH --exclude=$exclude_nodes"
+
+  local array_line="" output_pattern
+  if (( ${#jobs[@]} > 1 )); then
+    local num_tasks=${#jobs[@]}
+    array_line="#SBATCH --array=1-${num_tasks}%$throttle"
+    output_pattern="${output_directory}%x-%A_%a${sbatch_output_file_extension}"
+  else
+    output_pattern="${output_directory}%x${sbatch_output_file_extension}"
+  fi
+
+  cat <<EOF
+#!/bin/bash
+#SBATCH --job-name=$job_name
+#SBATCH --output="$output_pattern"
+#SBATCH --nodes=$nodes
+#SBATCH --ntasks=$ntasks
+#SBATCH --cpus-per-task=$number_of_cpus
+#SBATCH --mem=${total_memory_gb}gb
+#SBATCH --partition=$partition
+$time_line
+$nice_line
+$exclude_line
+$array_line
+
+set -euo pipefail
+
+module purge || true
+export PATH="$compiler_bin":\$PATH
+export LD_LIBRARY_PATH="$compiler_lib":\$LD_LIBRARY_PATH
+export OMP_NUM_THREADS=1
+export OMPI_MCA_rmaps_base_oversubscribe=1
+
+EXEC_MANIFEST="$exec_manifest"
+OUTPUT_DIR="$output_directory"
+DALTON32="$dalton_exec_32i"
+DALTON64="$dalton_exec_64i"
+SCRATCH_BASE="$scratch_base"
+TIME_DISPLAY="$time_display"
+PARTITION="$partition"
+CPUS="$number_of_cpus"
+MEM_GB="$total_memory_gb"
+LOPROP="$loprop"
+
+if [[ -n "\${SLURM_ARRAY_TASK_ID:-}" ]]; then
+  line=\$(sed -n "\${SLURM_ARRAY_TASK_ID}p" "\$EXEC_MANIFEST")
+else
+  line=\$(sed -n "1p" "\$EXEC_MANIFEST")
+fi
+
+IFS=$'\t' read -r DAL MOL POT RST <<< "\$line"
+
+dal_base=\$(basename "\$DAL"); dal_base="\${dal_base%.*}"
+mol_base=\$(basename "\$MOL"); mol_base="\${mol_base%.*}"
+if [[ -n "\$POT" ]]; then
+  pot_base=\$(basename "\$POT"); pot_base="\${pot_base%.*}"
+  stem="\${dal_base}_\${mol_base}_\${pot_base}"
+else
+  stem="\${dal_base}_\${mol_base}"
+fi
+
+output_file="\${OUTPUT_DIR}\${stem}.out"
+
+printf "Job name:      %s\n"   "\${SLURM_JOB_NAME:-$job_name}"
+printf "Job ID:        %s\n"   "\${SLURM_JOB_ID:-}"
+printf "Output file:   %s\n"   "\$output_file"
+printf "Compute node:  %s\n"   "\$(hostname)"
+printf "Partition:     %s\n"   "\$PARTITION"
+printf "CPU cores:     %s\n"   "\$CPUS"
+printf "Memory:        %s GB (%s GB per CPU core)\n" "\$MEM_GB" "\$(( MEM_GB / CPUS ))"
+printf "Time limit:    %s\n"   "\$TIME_DISPLAY"
+printf "Submitted by:  %s\n"   "\${USER:-}"
+printf "Submitted on:  %s\n"   "\$(date)"
+printf "=%.0s" {1..80}; printf "\n"
+
+if [[ -f "\$output_file" ]]; then
+  backup_existing_files() {
+    local target_path="\$1"
+    local dir_path base_name backup_dir backup_base
+    dir_path=\$(dirname -- "\$target_path")
+    base_name=\$(basename -- "\$target_path")
+    if [[ "$use_backup_dir" == true ]]; then
+      backup_dir="\${dir_path}/${backup_dir_name}"
+      [[ ! -d "\$backup_dir" ]] && mkdir -p "\$backup_dir"
+      backup_base="\${backup_dir}/\${base_name}"
+    else
+      backup_base="\${dir_path}/\${base_name}"
+    fi
+    local width=${#max_backups}
+    local from to i
+    exec 9> "\${backup_base}.lock" || true
+    flock -w 5 9 || true
+    printf -v to "%0\${width}d" "$max_backups"
+    [[ -e "\${backup_base}.\${to}" ]] && rm -f -- "\${backup_base}.\${to}"
+    for ((i=max_backups-1; i>=0; i--)); do
+      printf -v from "%0\${width}d" "\$i"
+      printf -v to   "%0\${width}d" "\$((i+1))"
+      if [[ -e "\${backup_base}.\${from}" ]]; then
+        mv -f -- "\${backup_base}.\${from}" "\${backup_base}.\${to}"
+      fi
+    done
+    printf -v to "%0\${width}d" 0
+    mv -f -- "\$target_path" "\${backup_base}.\${to}"
+    flock -u 9 || true
+    rm -f "\${backup_base}.lock" || true
+  }
+  backup_existing_files "\$output_file"
+fi
+
+if [[ -n "\${SLURM_ARRAY_TASK_ID:-}" ]]; then
+  export DALTON_TMPDIR="\${SCRATCH_BASE}/\${SLURM_JOB_ID}/\${SLURM_ARRAY_TASK_ID}"
+else
+  export DALTON_TMPDIR="\${SCRATCH_BASE}/\${SLURM_JOB_ID}"
+fi
+mkdir -p "\$DALTON_TMPDIR"
+
+DALTON_BIN="\$DALTON32"
+if [[ -z "\$POT" && "\$MEM_GB" -gt 16 ]]; then
+  DALTON_BIN="\$DALTON64"
+fi
+
+cmd=( "\$DALTON_BIN" -d -np "\$CPUS" -gb "\$MEM_GB" -t "\$DALTON_TMPDIR" -dal "\$DAL" -mol "\$MOL" -o "\$output_file" )
+[[ -n "\$POT" ]] && cmd+=( -pot "\$POT" )
+[[ -n "\$RST" ]] && cmd+=( -f "\$RST" )
+if [[ "\$LOPROP" == "true" ]]; then
+  cmd+=( -get "AOONEINT AOPROPER" )
+fi
+
+"\${cmd[@]}"
+
+rm -rf "\$DALTON_TMPDIR" || true
+
+printf "\n"; printf "=%.0s" {1..80}; printf "\n"
+printf "End of job\n"
+printf "=%.0s" {1..80}; printf "\n"
+printf "      Job ID   Job name     Memory   Wall time   CPU time\n"
+/usr/bin/sacct -n -j \$SLURM_JOB_ID --format=JobID,JobName,MaxRSS,Elapsed,CPUTime --units=GB
+printf "=%.0s" {1..80}; printf "\n"
+EOF
+}
+
+main() {
+  parse_arguments "$@"
+  initialize_directory
+
+  jobs=()
+  manifest_tokens=()
+
+  if [[ -n "$manifest_in" ]]; then
+    read_manifest_tokens "$manifest_in"
+  else
+    build_jobs_from_tokens "${positional_arguments[@]}"
+  fi
+
+  (( ${#jobs[@]} >= 1 )) || throw_argument_error "No jobs were assembled (check inputs)."
+
+  if [[ -n "$custom_job_name" ]]; then
+    job_name="$custom_job_name"
+  else
+    if (( ${#jobs[@]} == 1 )); then
+      IFS=$'\t' read -r DAL MOL POT RST <<< "${jobs[0]}"
+      dal_base=$(basename "$DAL"); dal_base="${dal_base%.*}"
+      mol_base=$(basename "$MOL"); mol_base="${mol_base%.*}"
+      if [[ -n "$POT" ]]; then
+        pot_base=$(basename "$POT"); pot_base="${pot_base%.*}"
+        job_name="${dal_base}_${mol_base}_${pot_base}"
+      else
+        job_name="${dal_base}_${mol_base}"
+      fi
+    else
+      job_name="job_array_$(date +%Y%m%d_%H%M%S)"
+    fi
+  fi
+
+  exec_manifest=$(create_exec_manifest "$job_name")
+  printf "Execution manifest: %s (%d jobs)\n" "$exec_manifest" "${#jobs[@]}"
+
+  if (( ${#jobs[@]} == 1 )); then
+    IFS=$'\t' read -r DAL MOL POT RST <<< "${jobs[0]}"
+    stem="$(basename "${DAL%.*}")_$(basename "${MOL%.*}")"
+    [[ -n "$POT" ]] && stem="${stem}_$(basename "${POT%.*}")"
+    backup_existing_files "${output_directory}${stem}.out"
+  else
+    for line in "${jobs[@]}"; do
+      IFS=$'\t' read -r DAL MOL POT RST <<< "$line"
+      stem="$(basename "${DAL%.*}")_$(basename "${MOL%.*}")"
+      [[ -n "$POT" ]] && stem="${stem}_$(basename "${POT%.*}")"
+      backup_existing_files "${output_directory}${stem}.out"
+    done
+  fi
+
+  sbatch_script=$(generate_sbatch_script "$job_name" "$exec_manifest")
+  printf "%s" "$sbatch_script" | sbatch
+  status=$?
+
+  if [[ $status -eq 0 ]]; then
+    if (( ${#jobs[@]} > 1 )); then
+      printf "Job array contains %d subjobs, throttled to %d concurrent subjobs\n" "${#jobs[@]}" "$throttle"
+    fi
+  else
+    printf "Error: Job submission failed\n" >&2
+    exit 1
+  fi
+}
+
+main "$@"

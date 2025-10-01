@@ -1,0 +1,438 @@
+#!/bin/bash
+#===============================================================================
+# SLURM submission script for Gaussian 16, Revision A.03
+# Author: Zacharias Liasi (liasi)
+# Github: https://github.com/zliasi
+# Version: 0.1.3
+# TODO: Set compchem as the default partition. Maybe reverse the backup numbering
+#
+# Usage: gaussian_submit input.(com|gjf) [options]
+#        gaussian_submit input1.com input2.com ... [options]
+#        gaussian_submit -M FILE [options]
+#
+# Options:
+#   -c, --cpus INT                 CPU cores per task (default: $default_number_of_cpus)
+#   -m, --memory INT               Total memory in GB (default: $default_memory_gb)
+#   -p, --partition NAME           Partition (default: $default_partition)
+#   -t, --time D-HH:MM:SS          Time limit (optional)
+#   -o, --output DIR               Output directory (default: $default_output_directory)
+#   -M, --manifest FILE            Manifest file (submits a job array using the input files listed in FILE)
+#   -T, --throttle INT             Max concurrent array subjobs (default: $default_throttle)
+#   -N, --nodes INT                Number of nodes (default: $default_nodes)
+#   -n, --ntasks INT               Number of tasks (default: $default_ntasks)
+#   -j, --job, --job-name NAME     Custom job name
+#   -y, --nice INT                 Set SLURM nice factor (optional)
+#   -h, --help                     Show this help
+#
+#===============================================================================
+
+#===============================================================================
+# Configuration      
+#===============================================================================
+
+default_partition=chem
+default_number_of_cpus=1
+default_memory_gb=2
+default_ntasks=1
+default_nodes=1
+default_throttle=10
+default_output_directory="output"
+sbatch_output_file_extension=".log"
+use_backup_dir=true
+max_backups=5
+backup_dir_name="backup"
+scratch_base="/scratch"
+gaussian_executable="/software/kemi/g16/g16"
+dependencies="
+export MKL_BLACS_MPI=INTELMPI
+module load intel/20.0.4 
+module load intelmpi/2020.4.304
+"
+
+#===============================================================================
+# Main part of the submission script
+#===============================================================================
+
+print_usage() {
+  cat <<'USAGE'
+ Usage: gaussian_submit input.(com|gjf) [options]
+        gaussian_submit input1.com input2.com ... [options]
+        gaussian_submit -M FILE [options]
+
+ Options:
+   -c, --cpus INT                 CPU cores per task (default: $default_number_of_cpus)
+   -m, --memory INT               Total memory in GB (default: $default_memory_gb)
+   -p, --partition NAME           Partition (default: $default_partition)
+   -t, --time D-HH:MM:SS          Time limit (optional)
+   -o, --output DIR               Output directory (default: $default_output_directory)
+   -M, --manifest FILE            Manifest file (submits a job array using the input files listed in FILE)
+   -T, --throttle INT             Max concurrent array subjobs (default: $default_throttle)
+   -N, --nodes INT                Number of nodes (default: $default_nodes)
+   -n, --ntasks INT               Number of tasks (default: $default_ntasks)
+   -j, --job, --job-name NAME     Custom job name
+   -y, --nice INT                 Set SLURM nice factor (optional)
+   -h, --help                     Show this help
+
+Examples:
+  gaussian_submit opt_b3lyp_ccpvdz_h2o.com -c 2 -m 4 -p chem -t 04:00:00
+  gaussian_submit *.com --throttle 5 -c 2 -m 4
+  gaussian_submit -M manifest.txt --throttle 2 -c 1 -m 2 -p kemi6
+USAGE
+}
+
+throw_argument_error() {
+  printf "\nError: %s\n" "$1" >&2
+  printf "Use: gaussian_submit -h for help.\n\n" >&2
+  exit 1
+}
+
+validate_file() {
+  if [[ ! -f "$1" ]]; then
+    throw_argument_error "File not found: $1"
+  fi
+}
+
+validate_positive_integer() {
+  if [[ ! "$1" =~ ^[1-9][0-9]*$ ]]; then
+    throw_argument_error "Invalid value for $2: must be a positive integer"
+  fi
+}
+
+validate_time_format() {
+  if [[ -n "$1" && ! "$1" =~ ^([0-9]+-)?([0-1]?[0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]$ ]]; then
+    throw_argument_error "Invalid time format: $1 (use D-HH:MM:SS or HH:MM:SS)"
+  fi
+}
+
+parse_arguments() {
+  local args=("$@")
+  positional_arguments=()
+  user_time_limit=""
+  custom_job_name=""
+  nice_factor=""
+
+  partition="$default_partition"
+  number_of_cpus="$default_number_of_cpus"
+  total_memory_gb="$default_memory_gb"
+  output_directory="$default_output_directory"
+  ntasks="$default_ntasks"
+  nodes="$default_nodes"
+  throttle="$default_throttle"
+  list_file=""
+  
+  local i=0
+  while [[ $i -lt ${#args[@]} ]]; do
+    case "${args[i]}" in
+      -o|--output) 
+        output_directory="${args[i+1]}"; ((i++));;
+      -c|--cpus) 
+        number_of_cpus="${args[i+1]}"; ((i++));;
+      -m|--memory) 
+        total_memory_gb="${args[i+1]}"; ((i++));;
+      -p|--partition) 
+        partition="${args[i+1]}"; ((i++));;
+      -t|--time) 
+        user_time_limit="${args[i+1]}"; ((i++));;
+      -M|--manifest) 
+        list_file="${args[i+1]}"; ((i++));;
+      -T|--throttle) 
+        throttle="${args[i+1]}"; ((i++));;
+      -N|--nodes) 
+        nodes="${args[i+1]}"; ((i++));;
+      -n|--ntasks) 
+        ntasks="${args[i+1]}"; ((i++));;
+      -j|--job|--job-name)
+        custom_job_name="${args[i+1]}"; ((i++));;
+      -y|--nice)
+        nice_factor="${args[i+1]}"; ((i++));;
+      -h|--help) 
+        print_usage; exit 0;;
+      -*) 
+        throw_argument_error "Unknown option: ${args[i]}";;
+      *) 
+        positional_arguments+=("${args[i]}");;
+    esac
+    ((i++))
+  done
+  
+  validate_positive_integer "$number_of_cpus" "CPU cores"
+  validate_positive_integer "$total_memory_gb" "memory"
+  validate_positive_integer "$ntasks" "ntasks"
+  validate_positive_integer "$nodes" "nodes"
+  validate_positive_integer "$throttle" "throttle"
+  [[ -n "$nice_factor" ]] && validate_positive_integer "$nice_factor" "nice factor"
+  validate_time_format "$user_time_limit"
+  
+  if [[ -n "$list_file" ]]; then
+    validate_file "$list_file"
+    readarray -t gaussian_inputs < <(grep -v '^[[:space:]]*$' "$list_file" | sed 's/\r$//')
+    array_mode=true
+  elif [[ ${#positional_arguments[@]} -gt 1 ]]; then
+    gaussian_inputs=("${positional_arguments[@]}")
+    array_mode=true
+  elif [[ ${#positional_arguments[@]} -eq 1 ]]; then
+    gaussian_inputs=("${positional_arguments[0]}")
+    array_mode=false
+  else
+    throw_argument_error "No input files specified"
+  fi
+  
+  for input_file in "${gaussian_inputs[@]}"; do
+    validate_file "$input_file"
+    if [[ ! "$input_file" =~ \.(com|gjf)$ ]]; then
+      throw_argument_error "Input file must have .com or .gjf extension: $input_file"
+    fi
+  done
+  
+  if [[ "$array_mode" == false ]]; then
+    gaussian_input="${gaussian_inputs[0]}"
+  fi
+  
+  [[ "${output_directory}" != "" && "${output_directory: -1}" != "/" ]] && output_directory="${output_directory}/"
+}
+
+backup_existing_files() {
+  local target_path="$1"
+  [[ -z "$target_path" || ! -f "$target_path" ]] && return 0
+
+  local dir_path base_name backup_dir backup_base
+  dir_path=$(dirname -- "$target_path")
+  base_name=$(basename -- "$target_path")
+
+  if [[ "$use_backup_dir" == true ]]; then
+    backup_dir="${dir_path}/${backup_dir_name}"
+    [[ ! -d "$backup_dir" ]] && mkdir -p "$backup_dir"
+    backup_base="${backup_dir}/${base_name}"
+  else
+    backup_base="${dir_path}/${base_name}"
+  fi
+
+  local width=${#max_backups}
+  local from to i
+
+  exec 9> "${backup_base}.lock"
+  if ! flock -w 5 9; then
+    printf "Warning: could not acquire lock for backup of %s\n" "$target_path"
+    return 0
+  fi
+
+  printf -v to "%0${width}d" "$max_backups"
+  [[ -e "${backup_base}.${to}" ]] && rm -f -- "${backup_base}.${to}"
+
+  for ((i=max_backups-1; i>=0; i--)); do
+    printf -v from "%0${width}d" "$i"
+    printf -v to   "%0${width}d" "$((i+1))"
+    if [[ -e "${backup_base}.${from}" ]]; then
+      mv -f -- "${backup_base}.${from}" "${backup_base}.${to}"
+    fi
+  done
+
+  printf -v to "%0${width}d" 0
+  mv -f -- "$target_path" "${backup_base}.${to}"
+
+  flock -u 9
+  rm -f "${backup_base}.lock"
+}
+
+initialize_directory() {
+  if [[ ! -d "$output_directory" ]]; then
+    mkdir -p "$output_directory"
+    printf "Created output directory: %s\n" "$output_directory"
+  else
+    printf "Using output directory: %s\n" "$output_directory"
+  fi
+}
+
+create_manifest() {
+  local _job_name="$1"
+  local custom_name="$2"
+  if [[ -n "$custom_name" ]]; then
+    local manifest_file="$custom_name"
+  else
+    local manifest_file="manifest"
+  fi
+  : > "$manifest_file"
+  for input_file in "${gaussian_inputs[@]}"; do
+    printf "%s\n" "$(realpath "$input_file")" >> "$manifest_file"
+  done
+  echo "$manifest_file"
+}
+
+generate_sbatch_script() {
+  local job_name="$1"
+  local manifest_file="$2"
+  
+  if [[ -n "$user_time_limit" ]]; then
+    local time_line="#SBATCH --time=$user_time_limit"
+    local time_display="$user_time_limit"
+  else
+    local time_line=""
+    local time_display="default (partition)"
+  fi
+
+  if [[ -n "$nice_factor" ]]; then
+    local nice_line="#SBATCH --nice=$nice_factor"
+  else
+    local nice_line=""
+  fi
+  
+  if [[ "$array_mode" == true ]]; then
+    local num_tasks=${#gaussian_inputs[@]}
+    local array_line="#SBATCH --array=1-${num_tasks}%$throttle"
+    local output_pattern="/dev/null"
+  else
+    local array_line=""
+    local output_pattern="${output_directory}%x${sbatch_output_file_extension}"
+  fi
+  
+  cat << EOF
+#!/bin/bash
+#SBATCH --job-name=$job_name
+#SBATCH --output="$output_pattern"
+#SBATCH --nodes=$nodes
+#SBATCH --ntasks=$ntasks
+#SBATCH --cpus-per-task=$number_of_cpus
+#SBATCH --mem=${total_memory_gb}gb
+#SBATCH --partition=$partition
+$time_line
+$nice_line
+$array_line
+
+$dependencies
+
+if [ -n "\${SLURM_ARRAY_TASK_ID+x}" ] && [ -f "$manifest_file" ]; then
+  input_file=\$(sed -n "\${SLURM_ARRAY_TASK_ID}p" "$manifest_file")
+  stem=\$(basename "\$input_file" | sed 's/\.[^.]*$//')
+  
+  exec 1>"${output_directory}\${stem}${sbatch_output_file_extension}" 2>&1
+  
+  printf "=%.0s" {1..80}; printf "\n"
+  printf "Job information\n"
+  printf "=%.0s" {1..80}; printf "\n"
+  printf "Job name:      %s\n"   "$job_name"
+  printf "Job ID:        %s_%s\n" "\$SLURM_ARRAY_JOB_ID" "\$SLURM_ARRAY_TASK_ID"
+  printf "Output file:   %s\n"   "\${stem}.out"
+  printf "Compute node:  %s\n"   "\$HOSTNAME"
+  printf "Partition:     %s\n"   "$partition"
+  printf "CPU cores:     %s\n"   "$number_of_cpus"
+  printf "Memory:        %s GB (%s GB per CPU core)\n" "$total_memory_gb" "$(( total_memory_gb / number_of_cpus ))"
+  printf "Time limit:    %s\n"   "$time_display"
+  printf "Submitted by:  %s\n"   "\$USER"
+  printf "Submitted on:  %s\n"   "\$(date)"
+  printf "=%.0s" {1..80}; printf "\n"
+  
+  export GAUSS_SCRDIR=$scratch_base/\$SLURM_JOB_ID/\$SLURM_ARRAY_TASK_ID
+  mkdir -p \$GAUSS_SCRDIR
+  srun $gaussian_executable "\$input_file" > "${output_directory}\${stem}.out"
+  
+  if [[ "${output_directory}" != "" && "${output_directory}" != "./" ]]; then
+    if ls \${stem}.chk 1> /dev/null 2>&1; then
+      mv \${stem}.chk "${output_directory}\${stem}.chk"
+    fi
+  fi
+  
+  rm -rf "\$GAUSS_SCRDIR"
+  
+  printf "\n"; printf "=%.0s" {1..80}; printf "\n"
+  printf "End of job\n"
+  printf "=%.0s" {1..80}; printf "\n"
+  printf "      Job ID   Job name     Memory   Wall time   CPU time\n"
+  sleep 2
+  /usr/bin/sacct -n -j \${SLURM_ARRAY_JOB_ID}_\${SLURM_ARRAY_TASK_ID} --format=JobID,JobName,MaxRSS,Elapsed,CPUTime --units=GB
+  printf "=%.0s" {1..80}; printf "\n"
+else
+  stem=\$(basename "$gaussian_input" | sed 's/\.[^.]*$//')
+  
+  printf "=%.0s" {1..80}; printf "\n"
+  printf "Job information\n"
+  printf "=%.0s" {1..80}; printf "\n"
+  printf "Job name:      %s\n"   "$job_name"
+  printf "Job ID:        %s\n"   "\$SLURM_JOB_ID"
+  printf "Output file:   %s\n"   "\${stem}.out"
+  printf "Compute node:  %s\n"   "\$HOSTNAME"
+  printf "Partition:     %s\n"   "$partition"
+  printf "CPU cores:     %s\n"   "$number_of_cpus"
+  printf "Memory:        %s GB (%s GB per CPU core)\n" "$total_memory_gb" "$(( total_memory_gb / number_of_cpus ))"
+  printf "Time limit:    %s\n"   "$time_display"
+  printf "Submitted by:  %s\n"   "\$USER"
+  printf "Submitted on:  %s\n"   "\$(date)"
+  printf "=%.0s" {1..80}; printf "\n"
+  
+  export GAUSS_SCRDIR=$scratch_base/\$SLURM_JOB_ID
+  mkdir -p \$GAUSS_SCRDIR
+  srun $gaussian_executable "$gaussian_input" > "${output_directory}\${stem}.out"
+  
+  if [[ "${output_directory}" != "" && "${output_directory}" != "./" ]]; then
+    if ls \${stem}.chk 1> /dev/null 2>&1; then
+      mv \${stem}.chk "${output_directory}\${stem}.chk"
+    fi
+  fi
+  
+  rm -rf "\$GAUSS_SCRDIR"
+  
+  printf "\n"; printf "=%.0s" {1..80}; printf "\n"
+  printf "End of job\n"
+  printf "=%.0s" {1..80}; printf "\n"
+  printf "      Job ID   Job name     Memory   Wall time   CPU time\n"
+  sleep 2
+  /usr/bin/sacct -n -j \$SLURM_JOB_ID --format=JobID,JobName,MaxRSS,Elapsed,CPUTime --units=GB
+  printf "=%.0s" {1..80}; printf "\n"
+fi
+
+EOF
+}
+
+main() {
+  parse_arguments "$@"
+  
+  initialize_directory
+  
+  if [[ -n "$custom_job_name" ]]; then
+    job_name="$custom_job_name"
+  elif [[ "$array_mode" == true ]]; then
+    job_name="job_array_$(date +%d-%m-%Y_%H.%M.%S)"
+  else
+    job_name=$(basename "$gaussian_input" | sed 's/\.[^.]*$//')
+  fi
+  
+  if [[ "$array_mode" == true ]]; then
+    if [[ -n "$list_file" ]]; then
+      manifest_file="$list_file"
+      printf "Using manifest file: %s\n" "$manifest_file"
+    else
+      manifest_file=$(create_manifest "$job_name" "$custom_job_name")
+      printf "Created manifest file: %s\n" "$manifest_file"
+    fi
+  else
+    manifest_file=""
+  fi
+  
+  if [[ "$array_mode" == true ]]; then
+    for input_file in "${gaussian_inputs[@]}"; do
+      stem=$(basename "$input_file" | sed 's/\.[^.]*$//')
+      backup_existing_files "${output_directory}${stem}.out"
+      backup_existing_files "${output_directory}${stem}${sbatch_output_file_extension}"
+      backup_existing_files "${output_directory}${stem}.chk"
+    done
+  else
+    stem=$(basename "$gaussian_input" | sed 's/\.[^.]*$//')
+    backup_existing_files "${output_directory}${stem}.out"
+    backup_existing_files "${output_directory}${stem}${sbatch_output_file_extension}"
+    backup_existing_files "${output_directory}${stem}.chk"
+  fi
+  
+  sbatch_script=$(generate_sbatch_script "$job_name" "$manifest_file")
+  printf "%s" "$sbatch_script" | sbatch
+  submission_status=$?
+  
+  if [[ $submission_status -eq 0 ]]; then
+    if [[ "$array_mode" == true ]]; then
+      printf "Job array contains %d subjobs, throttled to %d concurrent subjobs\n" "${#gaussian_inputs[@]}" "$throttle"
+    fi
+  else
+    printf "Error: Job submission failed\n" >&2
+    exit 1
+  fi
+}
+
+main "$@"
