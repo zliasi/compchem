@@ -1,0 +1,8 @@
+# Sphinx documentation
+docs/build/
+docs/source/_build/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
