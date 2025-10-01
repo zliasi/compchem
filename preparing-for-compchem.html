@@ -1,0 +1,764 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="./" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Preparing for Computational Chemistry &#8212; Introduction to computational chemistry</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=8f2a1f02" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="_static/documentation_options.js?v=01f34227"></script>
+    <script src="_static/doctools.js?v=9bcbadda"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'preparing-for-compchem';</script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Introduction to the Command-Line Interface" href="command-line-intro.html" />
+    <link rel="prev" title="Computational Chemistry Teaching Materials" href="index.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">Introduction to computational chemistry</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="#">
+    Preparing for Computational Chemistry
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="command-line-intro.html">
+    Introduction to the Command-Line Interface
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="steno-intro.html">
+    Introduction to Steno
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-external" href="https://github.com/zliasi/compchem">
+    GitHub Repository
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/zliasi/compchem" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fab fa-github-square fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="#">
+    Preparing for Computational Chemistry
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="command-line-intro.html">
+    Introduction to the Command-Line Interface
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="steno-intro.html">
+    Introduction to Steno
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-external" href="https://github.com/zliasi/compchem">
+    GitHub Repository
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/zliasi/compchem" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fab fa-github-square fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"></div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Preparing for Computational Chemistry</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="preparing-for-computational-chemistry">
+<h1>Preparing for Computational Chemistry<a class="headerlink" href="#preparing-for-computational-chemistry" title="Link to this heading">#</a></h1>
+<p>{: .no_toc }</p>
+<p>Setting up your computer for HPC access
+{: .fs-6 .fw-300 }</p>
+<section id="table-of-contents">
+<h2>Table of contents<a class="headerlink" href="#table-of-contents" title="Link to this heading">#</a></h2>
+<p>{: .no_toc .text-delta }</p>
+<ol class="arabic simple">
+<li><p>TOC
+{:toc}</p></li>
+</ol>
+</section>
+<hr class="docutils" />
+<section id="introduction-and-learning-objectives">
+<h2>Introduction and Learning Objectives<a class="headerlink" href="#introduction-and-learning-objectives" title="Link to this heading">#</a></h2>
+<p>This guide will help you set up your personal computer to connect to the department’s high-performance computing (HPC) system, Steno, where you’ll run quantum mechanical calculations throughout this course. By the end of this setup, you will be able to:</p>
+<ul class="simple">
+<li><p>Connect securely to Steno from your laptop using a terminal</p></li>
+<li><p>Run computational chemistry software with graphical interfaces</p></li>
+</ul>
+<p>Think of this setup as building a bridge between your laptop and our powerful computational resources. Your laptop will act as a window through which you can control and visualize calculations running on Steno.</p>
+</section>
+<section id="understanding-the-architecture">
+<h2>Understanding the Architecture<a class="headerlink" href="#understanding-the-architecture" title="Link to this heading">#</a></h2>
+<p>Steno is a collection of computers, linked together, built for running computational tasks. In essence, Steno is the workhorse that performs your calculations. Connected directly to Steno are four computers called front ends (fend01, fend02, fend03, and fend04). These front ends serve as our communication gateway to Steno.</p>
+<p>The connection flow looks like this:</p>
+<p>From your personal computer, you will create a secure wireless connection to one of the four front end computers, via which you will then be able to carry out tasks and submit computational jobs using SLURM (the job scheduler) to the cluster of workhorse computers.</p>
+</section>
+<section id="understanding-the-tools">
+<h2>Understanding the Tools<a class="headerlink" href="#understanding-the-tools" title="Link to this heading">#</a></h2>
+<p>Before we begin the setup, let’s understand what each tool does:</p>
+<p><strong>Terminal emulator</strong>: A program that provides a text-based interface to communicate with computers using typed commands rather than clicking buttons. Think of it as having a conversation with the computer where you type instructions and it responds with text. This is how scientists have interacted with computers for decades, and it remains the most powerful way to control computational resources.</p>
+<p><strong>SSH (secure shell)</strong>: A secure method for connecting to remote computers over a network. It’s like making an encrypted phone call to another computer, but for sending commands instead of voice. Every command you type and every response you receive is encrypted, ensuring your calculations and data remain secure.</p>
+<p><strong>X11 forwarding</strong>: A system that allows graphical programs running on Steno to display their windows on your screen. Without this, you could only see text output, not the molecular visualization tools like GaussView that we’ll use to set up calculations and visualize molecular structures and orbitals.</p>
+</section>
+<section id="preparation-requirements">
+<h2>Preparation Requirements<a class="headerlink" href="#preparation-requirements" title="Link to this heading">#</a></h2>
+<p>Besides a user account (which will be provided at the course start), you need to prepare your personal computer with:</p>
+<ol class="arabic simple">
+<li><p>An SSH-enabled terminal emulator (to establish the connection)</p></li>
+<li><p>A forwardable version of the X11 window system (to display graphical user interfaces)</p></li>
+</ol>
+<p>The setup process depends on your operating system. Follow the appropriate guide below for your system.</p>
+</section>
+<hr class="docutils" />
+<section id="operating-system-specific-setup">
+<h2>Operating System Specific Setup<a class="headerlink" href="#operating-system-specific-setup" title="Link to this heading">#</a></h2>
+<section id="windows-setup">
+<h3>Windows Setup<a class="headerlink" href="#windows-setup" title="Link to this heading">#</a></h3>
+<p>The easiest and most reliable emulator environment for Windows is the Windows Subsystem for Linux (WSL) program. It is shipped with Windows 10 (and later), so minimum work is needed to install it.</p>
+<section id="installation-steps">
+<h4>Installation Steps<a class="headerlink" href="#installation-steps" title="Link to this heading">#</a></h4>
+<ol class="arabic">
+<li><p>Open the start menu and search for “cmd”. This should locate the Command Prompt program. Right-click on it and choose the option “Run as administrator”.</p></li>
+<li><p>In the Command Prompt, type the following command and press Enter:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>wsl<span class="w"> </span>--install<span class="w"> </span>-d<span class="w"> </span>debian
+</pre></div>
+</div>
+<p>This installs the Windows Subsystem for Linux with Debian, a stable and robust Linux distribution.</p>
+</li>
+<li><p>During the installation, you will be prompted to set up a user account:</p>
+<ul class="simple">
+<li><p><strong>Username</strong>: You can use any username you want, but using the same name as your Steno username is strongly recommended for consistency (note that usernames are case-sensitive). Please use your own personal name or some variation of it, NOT your student ID number.</p></li>
+<li><p><strong>Password</strong>: Choose any secure password you’ll remember. You might use the same as your computer password for convenience.</p></li>
+</ul>
+</li>
+<li><p>Once the installation completes, <strong>reboot your system</strong> to finalize the process.</p></li>
+<li><p>After the reboot, open the start menu and search for “Debian”. Open it to access your Linux terminal environment. From now on, this program will be referred to as your terminal.</p></li>
+<li><p>The last step is activating the SSH client. In the terminal, type:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>apt<span class="w"> </span>update
+sudo<span class="w"> </span>apt<span class="w"> </span>install<span class="w"> </span>openssh-client
+</pre></div>
+</div>
+<p>Enter your password when prompted. This installs the SSH client that you’ll use to connect to Steno. No reboot is needed after this step.</p>
+</li>
+</ol>
+<p>{: .note }</p>
+<blockquote>
+<div><p><strong>Alternative option</strong>: If you have prior experience with PuTTY and prefer to use it, you may continue doing so with Xming for X11 forwarding. However, course support will focus on WSL, which provides a more integrated and modern experience.</p>
+</div></blockquote>
+</section>
+</section>
+<section id="macos-setup">
+<h3>macOS Setup<a class="headerlink" href="#macos-setup" title="Link to this heading">#</a></h3>
+<p>macOS includes a suitable terminal emulator, but we need to add X11 support for graphical applications through XQuartz.</p>
+<section id="id1">
+<h4>Installation Steps<a class="headerlink" href="#id1" title="Link to this heading">#</a></h4>
+<ol class="arabic">
+<li><p>First, check if you have Homebrew (a package manager for macOS) installed. Open Terminal (found in Applications → Utilities) and type:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>brew<span class="w"> </span>--version
+</pre></div>
+</div>
+</li>
+<li><p>If you see a version number (like “Homebrew 4.0.0”), skip to step 3. If you see “command not found”, you need to install Homebrew:</p>
+<ul class="simple">
+<li><p>Visit <a class="reference external" href="https://brew.sh">https://brew.sh</a></p></li>
+<li><p>Copy and run their one-line installation command in Terminal</p></li>
+<li><p>Follow the on-screen instructions carefully</p></li>
+</ul>
+</li>
+<li><p>Install XQuartz by typing:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>brew<span class="w"> </span>install<span class="w"> </span>--cask<span class="w"> </span>xquartz
+</pre></div>
+</div>
+<p>This will download and install XQuartz, which may take several minutes.</p>
+</li>
+<li><p><strong>Important</strong>: After installation completes, you must either:</p>
+<ul class="simple">
+<li><p>Log out of your Mac account and log back in, or</p></li>
+<li><p>Restart your computer</p></li>
+</ul>
+<p>This step is essential for XQuartz to integrate properly with your system.</p>
+</li>
+<li><p>To verify XQuartz is working correctly:</p>
+<ul class="simple">
+<li><p>Open XQuartz from your Applications folder</p></li>
+<li><p>Open a new Terminal window</p></li>
+<li><p>Type: <code class="docutils literal notranslate"><span class="pre">echo</span> <span class="pre">$DISPLAY</span></code></p></li>
+<li><p>You should see output similar to <code class="docutils literal notranslate"><span class="pre">/private/tmp/com.apple.launchd.xxxxx/org.xquartz:0</span></code></p></li>
+</ul>
+</li>
+</ol>
+<p>{: .important }</p>
+<blockquote>
+<div><p>XQuartz must be running in the background when you want to use graphical programs from Steno. The Terminal will automatically detect and use an instance of XQuartz that is running when the Terminal application is started.</p>
+</div></blockquote>
+</section>
+</section>
+<section id="linux-setup">
+<h3>Linux Setup<a class="headerlink" href="#linux-setup" title="Link to this heading">#</a></h3>
+<p>If you are running a Linux-based operating system (such as Ubuntu, Fedora, or Debian), you should already have a fully functional setup with both a terminal emulator and X11 support. No additional software installation is needed.</p>
+<p>You can verify your SSH client is installed by opening a terminal and typing:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>ssh<span class="w"> </span>-V
+</pre></div>
+</div>
+<p>If SSH is not installed (unlikely), install it using your distribution’s package manager:</p>
+<ul class="simple">
+<li><p><strong>Ubuntu/Debian</strong>: <code class="docutils literal notranslate"><span class="pre">sudo</span> <span class="pre">apt</span> <span class="pre">install</span> <span class="pre">openssh-client</span></code></p></li>
+<li><p><strong>Fedora</strong>: <code class="docutils literal notranslate"><span class="pre">sudo</span> <span class="pre">dnf</span> <span class="pre">install</span> <span class="pre">openssh-clients</span></code></p></li>
+<li><p><strong>Arch</strong>: <code class="docutils literal notranslate"><span class="pre">sudo</span> <span class="pre">pacman</span> <span class="pre">-S</span> <span class="pre">openssh</span></code></p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="testing-your-setup">
+<h2>Testing Your Setup<a class="headerlink" href="#testing-your-setup" title="Link to this heading">#</a></h2>
+<p>Before the course exercises, verify that your setup works correctly. You need an account on Steno before you can do this.</p>
+<section id="initial-connection-test">
+<h3>Initial Connection Test<a class="headerlink" href="#initial-connection-test" title="Link to this heading">#</a></h3>
+<ol class="arabic">
+<li><p>Open your terminal:</p>
+<ul class="simple">
+<li><p><strong>Windows</strong>: Open “Debian” from the Start menu</p></li>
+<li><p><strong>macOS</strong>: Open Terminal and ensure XQuartz is also running</p></li>
+<li><p><strong>Linux</strong>: Open your preferred terminal application</p></li>
+</ul>
+</li>
+<li><p>Test the SSH connection with X11 forwarding:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>ssh<span class="w"> </span>-X<span class="w"> </span>username@fend01.hpc.ku.dk
+</pre></div>
+</div>
+<p>Replace <code class="docutils literal notranslate"><span class="pre">username</span></code> with your actual Steno username. The <code class="docutils literal notranslate"><span class="pre">-X</span></code> flag enables X11 forwarding for graphical programs.</p>
+</li>
+<li><p><strong>Important</strong>: On your first connection to any front end, you will see a message about the host’s authenticity:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>The authenticity of host &#39;fend01.hpc.ku.dk (130.225.xxx.xxx)&#39;
+can&#39;t be established.
+ED25519 key fingerprint is SHA256:xxxxxxxxxxxxxxxxxxxxxxxxxxx.
+This key is not known by any other names
+Are you sure you want to continue connecting
+(yes/no/[fingerprint])?
+</pre></div>
+</div>
+<p>Copy the displayed fingerprint (the <code class="docutils literal notranslate"><span class="pre">SHA256:xxx...</span></code> string, NOT including the period at the end) and paste it at the prompt, then press Enter.</p>
+</li>
+<li><p>Enter your password when prompted. Note that the password won’t display on screen as you type (not even asterisks) – this is a security feature.</p></li>
+<li><p>Once connected, you should see a command prompt like:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>[username@fend01 ~]$
+</pre></div>
+</div>
+</li>
+</ol>
+</section>
+<section id="testing-graphical-display">
+<h3>Testing Graphical Display<a class="headerlink" href="#testing-graphical-display" title="Link to this heading">#</a></h3>
+<p>To verify that X11 forwarding works:</p>
+<ol class="arabic">
+<li><p>While connected to the front end, type:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>/software/kemi/gv6/gaussview
+</pre></div>
+</div>
+</li>
+<li><p>After a moment, the GaussView window should appear on your screen. If it opens successfully, your setup is complete!</p></li>
+<li><p>Close GaussView by pressing Ctrl+C in the terminal or clicking the X button.</p></li>
+<li><p>To disconnect from the front end:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">exit</span>
+</pre></div>
+</div>
+</li>
+</ol>
+</section>
+</section>
+<hr class="docutils" />
+<section id="troubleshooting-common-issues">
+<h2>Troubleshooting Common Issues<a class="headerlink" href="#troubleshooting-common-issues" title="Link to this heading">#</a></h2>
+<section id="windows-specific-issues">
+<h3>Windows-Specific Issues<a class="headerlink" href="#windows-specific-issues" title="Link to this heading">#</a></h3>
+<p><strong>WSL won’t install or gives errors</strong>:</p>
+<ul class="simple">
+<li><p>Run Windows Update to ensure you have the latest Windows version</p></li>
+<li><p>Try running <code class="docutils literal notranslate"><span class="pre">wsl</span> <span class="pre">--update</span></code> before installation</p></li>
+<li><p>If you see “Error: 0x80370102”, virtualization is likely disabled in BIOS</p></li>
+<li><p>Ensure virtualization is enabled in your BIOS settings</p></li>
+<li><p>If nothing works, try installing PuTTY and Xming instead</p></li>
+</ul>
+<p><strong>Cannot connect after WSL installation</strong>:</p>
+<ul class="simple">
+<li><p>Ensure you’re opening the Debian/WSL terminal, not Windows Command Prompt</p></li>
+<li><p>Verify SSH is installed by typing <code class="docutils literal notranslate"><span class="pre">which</span> <span class="pre">ssh</span></code> in the terminal</p></li>
+</ul>
+</section>
+<section id="macos-specific-issues">
+<h3>macOS-Specific Issues<a class="headerlink" href="#macos-specific-issues" title="Link to this heading">#</a></h3>
+<p><strong>XQuartz won’t forward graphics or GaussView won’t display</strong>:</p>
+<ul class="simple">
+<li><p>Ensure XQuartz is actually running (look for its icon in the dock)</p></li>
+<li><p>Open XQuartz preferences → Security tab → ensure “Allow connections from network clients” is checked</p></li>
+<li><p>Try using <code class="docutils literal notranslate"><span class="pre">ssh</span> <span class="pre">-Y</span></code> instead of <code class="docutils literal notranslate"><span class="pre">ssh</span> <span class="pre">-X</span></code> for trusted connections</p></li>
+<li><p>If you just installed XQuartz, make sure you logged out and back in</p></li>
+<li><p>Try running: <code class="docutils literal notranslate"><span class="pre">defaults</span> <span class="pre">write</span> <span class="pre">org.xquartz.X11</span> <span class="pre">enable_iglx</span> <span class="pre">-bool</span> <span class="pre">true</span></code> in Terminal, then restart</p></li>
+</ul>
+</section>
+<section id="general-connection-issues">
+<h3>General Connection Issues<a class="headerlink" href="#general-connection-issues" title="Link to this heading">#</a></h3>
+<p><strong>Connection refused, timeout, or “No route to host”</strong>:</p>
+<ul class="simple">
+<li><p>Verify you’re on the university network (see <a class="reference external" href="https://hpc.ku.dk">HPC website</a> for VPN instructions)</p></li>
+<li><p>Check that you’re using the correct front-end name (fend01, fend02, fend03, fend04)</p></li>
+<li><p>Ensure your username is typed correctly (case-sensitive)</p></li>
+<li><p>Try a different front end if one isn’t responding</p></li>
+</ul>
+<p><strong>GaussView won’t start or shows “cannot open display”</strong>:</p>
+<ul class="simple">
+<li><p>Verify you used the <code class="docutils literal notranslate"><span class="pre">-X</span></code> flag when connecting</p></li>
+<li><p>On Windows, ensure you’re using the WSL terminal</p></li>
+<li><p>On Mac, confirm XQuartz is running before you connect</p></li>
+<li><p>Try <code class="docutils literal notranslate"><span class="pre">ssh</span> <span class="pre">-Y</span></code> instead of <code class="docutils literal notranslate"><span class="pre">ssh</span> <span class="pre">-X</span></code></p></li>
+</ul>
+<p><strong>Password not working</strong>:</p>
+<ul class="simple">
+<li><p>Remember that passwords are case-sensitive</p></li>
+<li><p>You won’t see anything as you type (this is normal)</p></li>
+<li><p>If you’ve forgotten your password, contact the course administrators</p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="next-steps">
+<h2>Next Steps<a class="headerlink" href="#next-steps" title="Link to this heading">#</a></h2>
+<p>Once you’ve successfully tested your connection and verified that GaussView displays correctly, you’re ready to proceed to the next guide:</p>
+<p><a class="reference internal" href="command-line-intro.html"><span class="doc std std-doc">Introduction to the Command-Line Interface →</span></a>{: .btn .btn-primary }</p>
+<hr class="docutils" />
+<p><strong>Need help?</strong> If you encounter issues that aren’t resolved by this guide, contact the course teaching assistant or administrators.</p>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="index.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Computational Chemistry Teaching Materials</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="command-line-intro.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Introduction to the Command-Line Interface</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#table-of-contents">Table of contents</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#introduction-and-learning-objectives">Introduction and Learning Objectives</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#understanding-the-architecture">Understanding the Architecture</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#understanding-the-tools">Understanding the Tools</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#preparation-requirements">Preparation Requirements</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#operating-system-specific-setup">Operating System Specific Setup</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#windows-setup">Windows Setup</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#installation-steps">Installation Steps</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#macos-setup">macOS Setup</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#id1">Installation Steps</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#linux-setup">Linux Setup</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#testing-your-setup">Testing Your Setup</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#initial-connection-test">Initial Connection Test</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#testing-graphical-display">Testing Graphical Display</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#troubleshooting-common-issues">Troubleshooting Common Issues</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#windows-specific-issues">Windows-Specific Issues</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#macos-specific-issues">macOS-Specific Issues</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#general-connection-issues">General Connection Issues</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#next-steps">Next Steps</a></li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/preparing-for-compchem.md.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2025, Zacharias Liasi.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>
